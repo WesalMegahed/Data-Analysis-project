@@ -1,0 +1,695 @@
+---
+title: "Data Analysis for stress & coping on Academic performance"
+author: "Wesal megahed"
+date: "1-1-2025"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction
+
+The primary objective of this project is to explore how **demographic factors** (such as age, gender, family structure, etc.), **Stress** and **coping mechanisms**, and their combined impact influence **Academic performance**. The aim is to understand how these factors might contribute to or hinder a student’s ability to succeed academically.
+
+By gathering data on these elements, the study will uncover patterns that can offer insights to answer the following Questions:
+
+- **Family Background**: How does family structure (e.g., single-parent families, dual-parent families) influence stress and academic performance?
+- **Educational Level**: Does a student's level of education (high school, undergraduate, etc.) impact their stress levels and coping strategies?
+- **Access to Resources**: How do factors like digital access contribute to a student's success?
+
+- **Stress Levels**: What types of stress do students experience, and how do they perceive their stress level in relation to their studies?
+- **Coping Strategies**: What coping mechanisms are most commonly employed by students, and how do these mechanisms influence their academic outcomes?
+
+- **Interaction of Factors**: How do demographic factors (e.g., family background, age) interact with stress levels and coping strategies to influence academic performance?
+- **Academic Success or Failure**: How do these combined factors contribute to a student's ability to succeed academically, and what patterns can be identified?
+
+# Data Analysis
+Below, we will present a summary of the data and apply statistical analysis techniques such as confidence intervals, hypothesis testing, regression analysis to interpret the data.
+
+
+```{r}
+options(warn=-1)
+
+library(readxl)
+library(ggplot2)    # For visualizations
+library(dplyr)      # For data manipulation
+library(psych)      # For descriptive statistics
+library(janitor)    # clean names
+library(knitr)      # tables
+
+# Load the dataset(this is example for group 8)
+data <- read_excel("8 Demographics, stress & coping and Academic performance.xlsx")
+
+# Clean the dataset
+data <- data %>% clean_names()
+names(data)[names(data) == "academic_performance_questions"] <- "GPA"
+names(data)[names(data) == "on_a_scale_from_1_lowest_to_10_highest_how_would_you_rate_your_general_stress_level_over_the_past_month"] <- "Stress_levels"
+names(data)[names(data) == "lifestyle_factors_urban_vs_rural_living"] <- "lifestyle"
+names(data)[names(data) == "impact_of_stress_on_grades" ] <- "stress_impact"
+colnames(data)
+
+```
+
+```{r}
+#------------------------ Statistical Summaries -------------------#
+
+## Central tendency measures 
+summary(data)  
+
+# Perform statistical summaries
+summary_table <- data %>%
+  summarise(
+    `Total Records` = n(),
+    `Age (Mean)` = mean(age),
+    `Age (Median)` = median(age),
+    `Coping Frequency (Mean)` = mean(frequency_of_coping),
+    `Coping Frequency (Median)` = median(frequency_of_coping),
+    `Time Studying (Mean)` = mean(time_spent_studying),
+    `Time Studying (Median)` = median(time_spent_studying),
+    `Academic Performance (Mean)` = mean(GPA),
+    `Academic Performance (Median)` = median(GPA)
+  )
+
+# Convert to a professional table format
+kable(summary_table, caption = "Statistical Summary of the Dataset", digits = 2)
+
+# Variability measures
+variability_age <- data %>%
+  summarise(
+    `Total Records` = n(),
+    `Mean Age` = mean(age),
+    `Variance Age` = var(age),
+    `Standard Deviation Age` = sd(age),
+    `Min Age` = min(age),
+    `Max Age` = max(age),
+    `Range Age` = diff(range(age)),
+    `Q1 Age` = quantile(age, 0.25),
+    `Median Age` = median(age),
+    `Q3 Age` = quantile(age, 0.75),
+    `IQR Age` = IQR(age))
+kable(variability_age,caption = "Variability Measures of the Dataset",digits = 2)
+
+variability_gpa <- data %>%
+  summarise(
+`Mean GPA` = mean(GPA),
+`Variance GPA` = var(GPA),
+`Standard Deviation GPA` = sd(GPA),
+`Min GPA` = min(GPA),
+`Max GPA` = max(GPA),
+`Range GPA` = diff(range(GPA)),
+`Q1 GPA` = quantile(GPA, 0.25),
+`Median GPA` = median(GPA),
+`Q3 GPA` = quantile(GPA, 0.75),
+`IQR GPA` = IQR(GPA))
+kable(variability_gpa,caption = "Variability Measures of the Dataset",digits = 2)
+
+
+
+variability_Time_studying <- data %>%
+  summarise(
+    `Mean Time Spent Studying` = mean(time_spent_studying),
+`Variance Time Spent Studying` = var(time_spent_studying),
+`Standard Deviation Time Spent Studying` = sd(time_spent_studying),
+`Min Time Spent Studying` = min(time_spent_studying),
+`Max Time Spent Studying` = max(time_spent_studying),
+`Range Time Spent Studying` = diff(range(time_spent_studying)),
+`Q1 Time Spent Studying` = quantile(time_spent_studying, 0.25),
+`Median Time Spent Studying` = median(time_spent_studying),
+`Q3 Time Spent Studying` = quantile(time_spent_studying, 0.75),
+`IQR Time Spent Studying` = IQR(time_spent_studying))
+kable(variability_Time_studying,caption = "Variability Measures of the Dataset",digits = 2)
+
+
+variability_Coping_hour <- data %>%
+  summarise(
+`Mean Frequency of Coping` = mean(frequency_of_coping),
+`Variance Frequency of Coping` = var(frequency_of_coping),
+`Standard Deviation Frequency of Coping` = sd(frequency_of_coping),
+`Min Frequency of Coping` = min(frequency_of_coping),
+`Max Frequency of Coping` = max(frequency_of_coping),
+`Range Frequency of Coping` = diff(range(frequency_of_coping)),
+`Q1 Frequency of Coping` = quantile(frequency_of_coping, 0.25),
+`Median Frequency of Coping` = median(frequency_of_coping),
+`Q3 Frequency of Coping` = quantile(frequency_of_coping, 0.75),
+`IQR Frequency of Coping` = IQR(frequency_of_coping))
+kable(variability_Coping_hour,caption = "Variability Measures of the Dataset",digits = 2)
+
+```
+
+```{r}
+table(data$gender)
+table(data$parents_education_level)
+```
+
+
+```{r}
+
+table(data$gender)# ------------------- Data Visualization -------------- #
+
+# 1. Histogram for Age
+hist(data$age)
+
+ggplot(data, aes(x = age)) +
+  geom_histogram(binwidth = 1, fill = "skyblue", color = "black", alpha = 0.7) +
+  labs(title = "Histogram of Age", x = "Age", y = "Frequency") +
+  theme_minimal()
+
+# 2. Histogram for GPA
+ggplot(data, aes(x = GPA)) +
+  geom_histogram(binwidth = 0.1, fill = "orange", color = "black", alpha = 0.7) +
+  labs(title = "Histogram of GPA", x = "GPA", y = "Frequency") +
+  theme_minimal()
+
+# 3. Histogram for Time Spent Studying
+ggplot(data, aes(x = frequency_of_coping)) +
+  geom_histogram(binwidth = 1, fill = "green", color = "black", alpha = 0.7) +
+  labs(title = "Histogram of Frequency of Coping", x = "Frequency of Coping", y = "Frequency") +
+  theme_minimal()
+
+# 3. Boxplot for Age
+ggplot(data, aes(y = age)) +
+  geom_boxplot(fill = "lightblue", color = "black") +
+  labs(title = "Boxplot of Age", y = "Age") +
+  theme_minimal()
+
+# 4. Boxplot for GPA
+ggplot(data, aes(y = GPA)) +
+  geom_boxplot(fill = "lightgreen", color = "black") +
+  labs(title = "Boxplot of GPA", y = "GPA") +
+  theme_minimal()
+
+# 5. Boxplot for Frequency of Coping
+ggplot(data, aes(y = frequency_of_coping)) +
+  geom_boxplot(fill = "lightcoral", color = "black") +
+  labs(title = "Boxplot of Frequency of Coping", y = "Frequency of Coping") +
+  theme_minimal()
+
+
+# 7. Bar Plot for Gender
+barplot(table(data$gender))
+
+ggplot(data, aes(x = gender, fill = gender)) +
+  geom_bar() +
+  labs(title = "Bar Plot of Gender", x = "Gender", y = "Count") +
+  theme_minimal()
+
+# 8. Bar Plot for impact of stress on grades
+ggplot(data, aes(x = stress_impact, fill = stress_impact)) +
+  geom_bar() +
+  labs(title = "Bar Plot of Education Level", x = "Education Level", y = "Count") +
+  theme_minimal()
+
+
+pie(table(data$gender), main = "Pie Chart of Gender")
+ggplot(data, aes(x = "", fill = gender)) +
+  geom_bar(stat = "count", width = 1) +
+  coord_polar(theta = "y") +
+  labs(title = "Pie Chart of Gender") +
+  theme_void() +
+  theme(legend.title = element_blank())
+```
+
+```{r}
+
+#----------------------- Detect and replace outliers ---------------------#
+# Define a function to detect and replace outliers
+
+replace_outliers_with_median <- function(column) {
+  Q1 <- quantile(column, 0.25, na.rm = TRUE)
+  Q3 <- quantile(column, 0.75, na.rm = TRUE)
+  IQR <- Q3 - Q1
+  lower_bound <- Q1 - 1.5 * IQR
+  upper_bound <- Q3 + 1.5 * IQR
+  column <- ifelse(column < lower_bound | column > upper_bound, 
+                   median(column, na.rm = TRUE), 
+                   column)
+  return(column)}
+
+# Apply the function to numeric columns in your dataset using mutate function
+data_cleaned <- data %>%
+  mutate(across(where(is.numeric), replace_outliers_with_median))
+
+```
+
+```{r}
+# 2. Histogram for Age
+ggplot(data_cleaned, aes(x = age)) +
+  geom_histogram(binwidth = 1, fill = "skyblue", color = "black", alpha = 0.7) +
+  labs(title = "Histogram of Age", x = "Age", y = "Frequency") +
+  theme_minimal()
+
+# 2. Histogram for GPA
+ggplot(data_cleaned, aes(x = GPA)) +
+  geom_histogram(binwidth = 0.1, fill = "orange", color = "black", alpha = 0.7) +
+  labs(title = "Histogram of GPA", x = "GPA", y = "Frequency") +
+  theme_minimal()
+```
+ 
+ 
+```{r}
+#####
+# Proportions (%) of each category: Example for gender
+(table(data$gender)/length(data$gender))*100
+
+# Or use probability table
+prop.table(table(data$gender)) * 100
+
+# to round up to one decimal
+round(prop.table(table(data$gender)) * 100, 1)
+
+
+# Create a contingency table (Count)
+table(data_cleaned$gender, data_cleaned$digital_access)
+table(data_cleaned$family_structure, data_cleaned$Stress_levels)
+table(data_cleaned$parents_education_level,data_cleaned$parents_education_level1)
+#possible comment (Most parents with a University Degree or Higher tend to have partners or family members with similar education levels )
+
+# Create a contingency table (proportion)
+round(prop.table(table(data_cleaned$gender, data_cleaned$digital_access)) * 100, 1)
+
+# Plot clustered bar chart for two qualitative variables
+ggplot(data_cleaned, aes(x = digital_access, fill = gender)) +
+  geom_bar(position = "dodge") +
+  labs(title = "Digital access & Gender",
+       x = "Digital access Level",
+       y = "Count",
+       fill = "Gender") +
+  theme_minimal()
+
+ggplot(data_cleaned, aes(x = family_structure, fill = Stress_levels)) +
+  geom_bar(position = "dodge") +
+  labs(title = "Stress level and Family Structure",
+       x = "Family Structure",
+       y = "Count",
+       fill = "stress Level") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  theme_minimal()
+
+# Graph for parents_education_level & parents_education_level1
+ggplot(data_cleaned, aes(x = parents_education_level, fill = parents_education_level1)) +
+  geom_bar(position = "dodge") +
+  labs(title = "Relationship Between Parents' Education Levels",
+       x = "Parents' Education Level",
+       y = "Count",
+       fill = "Partner's Education Level") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  theme_minimal()
+
+#--------------------------------------
+#Plot box plot for  qualitative and Quantitative variables 
+ggplot(data_cleaned, aes(x = gender, y = GPA, fill = gender)) +
+  geom_boxplot() +
+  labs(title = "Academic Performance by Gender",
+       x = "Gender",
+       y = "GPA") +
+  theme_minimal()
+
+ggplot(data_cleaned, aes(x = GPA, fill = gender)) +
+  geom_bar(position = "dodge") +
+  labs(title = "Academic performance & Gender",
+       x = "Academic performance",
+       y = "Count",
+       fill = "Gender") +
+  theme_minimal()
+
+ggplot(data_cleaned, aes(x = Stress_levels, fill = gender)) +
+  geom_bar(position = "dodge") +
+  labs(title = "Stress levels & Gender",
+       x = "Stress levels",
+       y = "Count",
+       fill = "Gender") +
+  theme_minimal()
+```
+
+
+```{r}
+#----------------------for overlapped variables (more than one answer per response)
+#stress_sources
+table(data_cleaned$stress_sources)
+
+# Step 1: Clean and process the data
+Stress_Source <- unlist(strsplit(data_cleaned$stress_sources, "[;\n]")) # Split by semicolon and newline
+Stress_Source <- trimws(Stress_Source)               # Remove whitespace
+Stress_Source <- Stress_Source[Stress_Source != ""]       # Remove empty strings
+
+# Step 2: Create a frequency table
+frequency_Stress_Source <- table(Stress_Source)
+frequency_Stress_Source
+barplot(frequency_Stress_Source, main = "Barplot for Stress sources", xlab = "Stress sources", ylab = "count", col = "skyblue")
+
+
+### Coping Strategies
+# Step 1: Clean and process the data
+coping_strategies <- unlist(strsplit(data_cleaned$coping_strategies, "[;\n]")) # Split by semicolon and newline
+coping_strategies <- trimws(coping_strategies)               # Remove whitespace
+coping_strategies <- coping_strategies[coping_strategies != ""]       # Remove empty strings
+
+# Step 2: Create a frequency table
+frequency_coping_strategies <- table(coping_strategies)
+frequency_coping_strategies
+barplot(frequency_coping_strategies, main = "Barplot for Stress sources", xlab = "Stress sources", ylab = "count", col = "skyblue",las = 2, cex.names = 0.8)
+
+```
+
+
+# Confidence Interval (CI)
+A confidence interval is used to estimate a range of values that is likely to contain the population parameter. For example, if we want to estimate the mean GPA of all students based on a sample,we would calculate the confidence interval for **the Sample mean GPA**.
+
+```{r}
+
+# Point Estimate for the population mean (GPA for All student in college)
+Estimated_population_mean = mean(data_cleaned$GPA)
+Estimated_population_mean 
+
+
+# 1- 95% Confidence Interval for GPA
+confidence_level <- 0.95
+z_value <- qnorm(1 - (1 - confidence_level) / 2)  # z=1.96 for 95% CI
+z_value
+
+# Calculate margin of error
+n = length(data_cleaned$GPA)
+margin_of_error <- z_value * (sd(data_cleaned$GPA) / sqrt(n))
+
+# Calculate confidence interval
+CI_lower <- Estimated_population_mean - margin_of_error
+CI_upper <- Estimated_population_mean + margin_of_error
+CI = c(CI_lower, CI_upper)
+CI
+
+```
+- This means we are 95% confident that the true population mean GPA lies between **5.259 and 6.818**.
+- The margin of error is 0.780 (rounded), indicating **the estimate's precision**. As smaller margin of error suggests more precision in the estimate of the population mean of GPA.
+
+# Hypothesis Testing
+We'll conduct hypothesis tests to validate or reject assumptions about the data. 
+
+- Test Conducted: One-sample z-test on the GPA variable to determine if the true mean of GPA is significantly different from 2.
+# Case (1)- Two Sided
+- Null Hypothesis (H₀): The true mean GPA is equal to 2.
+- Alternative Hypothesis (H₁): The true mean GPA is not equal to 2.
+
+```{r}
+#install.packages("BSDA")
+library("BSDA")
+z.test(data_cleaned$GPA, 
+       mu = 2, sigma.x =sd(data_cleaned$GPA), 
+       conf.level = 0.95, alternative = "two.sided")
+```
+- Reject H₀ and accept alternative hypothesis: true mean is not equal to 2
+- Coinfidence Interval: [ 5.258548 - 6.818375 ]
+
+```{r}
+# Case (2)- one Side (Right tail)
+z.test(data_cleaned$GPA, 
+       mu = 2, sigma.x =sd(data_cleaned$GPA), 
+       conf.level = 0.95, alternative = "greater")
+
+```
+- Reject H₀ and accept alternative hypothesis: true mean greater than 2
+- Coinfidence Interval: [ 5.383938 - infinity ]
+
+```{r}
+# Case (3)- one Side (left tail)
+z.test(data_cleaned$GPA, 
+       mu = 2, sigma.x =sd(data_cleaned$GPA), 
+       conf.level = 0.95, alternative = "greater")
+```
+- Reject H₀ and accept alternative hypothesis: true mean greater than 2
+- Coinfidence Interval: [ 5.383938 - infinity ]
+
+# A common test to begin with is the t-test, depending on the nature of the data.
+
+```{r}
+# One-sample t-test to test if the mean GPA is significantly different from 6.0
+t_test_result <- t.test(data_cleaned$GPA, mu = 6.0)
+t_test_result
+```
+- The p-value of 0.9234 is much greater than the typical significance level of 0.05. Therefore, we fail to reject the null hypothesis.
+- This means there is no significant evidence to suggest that the true mean of GPA is different from 6.
+
+```{r}
+# One-sample t-test for testing if the mean GPA is greater than 6
+t_test_result <- t.test(data_cleaned$GPA, mu = 6, alternative = "greater")
+t_test_result
+
+```
+- Since the p-value (0.4617) is much higher than the significance level (0.05), we fail to reject the null hypothesis. 
+- This means there isn't sufficient evidence to claim that the mean GPA is greater than 6.
+
+
+# Regression Analysis
+we can explore relationships between variables, such as how stress levels and coping strategies affect academic performance (GPA).
+```{r}
+ggplot(data_cleaned, aes(x = time_spent_studying, y = frequency_of_coping)) +
+  geom_point(color = "darkgreen", size = 2) +  
+  geom_smooth(method = "lm", col = "blue", se = TRUE) +  # Add confidence interval with se = TRUE
+  labs(title = "Studying Time vs Coping Time",
+       x = "Time Spent Studying (Hours)",
+       y = "Coping Time (Hours)") +
+  theme_minimal()
+
+
+# Split the dataset by family structure and perform linear regression 
+#to Apply regression for each group
+family_groups <- split(data_cleaned, data_cleaned$family_structure)
+regressions <- lapply(family_groups, function(df) {lm(GPA ~ Stress_levels, data = df)})
+lapply(regressions, summary)     # Display summary for each group
+
+```
+
+- There is no strong or significant relationship between stress levels and GPA in the Extended family household.
+- Slope: -0.1992 (Negative relationship; as stress levels increase, GPA decreases slightly, but the effect is not significant).
+
+```{r}
+# Perform One-Way ANOVA (Example on parents_education_level)
+anova_result <- aov(GPA ~ parents_education_level, data = data_cleaned)
+summary_anova <- summary(anova_result)
+print(summary_anova)
+
+# P-value interpretation
+p_value_anova <- summary_anova[[1]][["Pr(>F)"]][1]
+if (p_value_anova < 0.05) {
+  cat("There is a significant difference in GPA between education level groups.\n")
+} else {
+  cat("There is no significant difference in GPA between education level groups.\n")
+}
+
+```
+
+- The p-value (0.456) is greater than 0.05, which indicates that the differences in GPA between the levels of parents' education level are not statistically significant at the 5% significance level.
+- This means that there is no sufficient evidence to conclude that the GPA differs based on parents' education level.
+- The variation in GPA scores is mostly due to random chance rather than a significant effect of parents' education level.
+- parents_education_level (Between Groups): 22.0 — variability explained by the group differences.
+
+```{r}
+# Perform One-Way ANOVA (on gender)
+anova_result <- aov(GPA ~ gender, data = data_cleaned)
+summary_anova <- summary(anova_result)
+print(summary_anova)
+
+# P-value interpretation
+p_value_anova <- summary_anova[[1]][["Pr(>F)"]][1]
+if (p_value_anova < 0.05) {
+  cat("There is a significant difference in GPA between education level groups.\n")
+} else {
+  cat("There is no significant difference in GPA between education level groups.\n")
+}
+
+
+# Regression analysis:  GPA based on time spent studying
+model <- lm(GPA ~ time_spent_studying, data = data_cleaned)
+summary(model)
+anova_results <- anova(model)
+anova_results
+
+```
+- There is no significant relationship between time spent studying and GPA.
+- The slope coefficient (0.0017) is not significant (p>0.05), and the R-squared value shows that time spent studying explains an insignificant portion of the GPA variance.
+- This suggests that factors other than time spent studying are likely influencing GPA.
+
+```{r}
+regressions <- lapply(family_groups, function(df) {lm(GPA ~ time_spent_studying, data = df)})
+lapply(regressions, summary)
+
+#-----------------------------------------------------------------------------------
+# Compare GPA across family structures
+family_gpa <- aggregate(GPA ~ family_structure, data = data_cleaned, mean)
+family_gpa
+
+# Create bar plot
+barplot(family_gpa$GPA, 
+        names.arg = family_gpa$family_structure, 
+        col = "skyblue", 
+        main = "Mean GPA Across Family Structures", 
+        ylab = "Mean GPA", 
+        xlab = "Family Structure")
+
+ggplot(data_cleaned, aes(x = time_spent_studying, y = GPA)) +
+  geom_point() +
+  geom_smooth(method = "lm", col = "blue") +
+  facet_wrap(~ family_structure) +
+  labs(title = "Relationship Between Study Time and GPA by Family Structure",
+       x = "Time Spent Studying",
+       y = "GPA") +
+  theme_minimal()
+
+# Regression model: GPA ~ stress_levels + family_structure + digital_access
+model <- lm(GPA ~ Stress_levels + family_structure + digital_access + age, data = data_cleaned)
+summary(model)
+#Coefficients will show how stress levels and family background influence GPA, accounting for age and digital access.
+
+# Apply linear regression (Stress Levels ~ GPA) for each family group
+stress_regressions <- lapply(family_groups, function(df) {lm(GPA ~ Stress_levels, data = df)})
+lapply(stress_regressions, summary)      # Display regression summaries for each group
+
+# Compare Mean GPA across family structures
+family_gpa_stress <- aggregate(GPA ~ family_structure, data = data_cleaned, mean)
+
+# Create Bar Plot of GPA across Family Structures
+barplot(family_gpa_stress$GPA, 
+        names.arg = family_gpa_stress$family_structure, 
+        col = "lightgreen", 
+        main = "Mean GPA Across Family Structures",
+        ylab = "Mean GPA", 
+        xlab = "Family Structure")
+
+# Scatter Plot of Stress Levels vs GPA with Regression Lines
+ggplot(data_cleaned, aes(x = Stress_levels, y = GPA)) +
+  geom_point() +
+  geom_smooth(method = "lm", col = "red") +
+  facet_wrap(~ family_structure) +
+  labs(title = "Relationship Between Stress Levels and GPA by Family Structure",
+       x = "Stress Levels",
+       y = "GPA") +
+  theme_minimal()
+```
+## Family Background: How does family structure influence stress and GPA?
+- Statistical Summary of GPA and Stress by Family Structure
+
+```{r}
+aggregate(cbind(GPA, Stress_levels) ~ family_structure, data = data_cleaned, mean)
+```
+## ANOVA: Does Family Structure Affect GPA and Stress?
+```{r}
+  anova_gpa <- aov(GPA ~ family_structure, data = data_cleaned)
+summary(anova_gpa)
+
+anova_stress <- aov(Stress_levels ~ family_structure, data = data_cleaned)
+summary(anova_stress)
+```
+
+
+## Visualization: Boxplots for GPA and Stress by Family Structure
+```{r}
+ggplot(data_cleaned, aes(x = family_structure, y = GPA, fill = family_structure)) +
+  geom_boxplot() +
+  labs(title = "GPA by Family Structure", x = "Family Structure", y = "GPA") +
+  theme_minimal()
+
+ggplot(data_cleaned, aes(x = family_structure, y = Stress_levels, fill = family_structure)) +
+  geom_boxplot() +
+  labs(title = "Stress Levels by Family Structure", x = "Family Structure", y = "Stress Level") +
+  theme_minimal()
+```
+
+
+## Educational Level: Does level of education impact stress and coping strategies?
+```{r}
+aggregate(cbind(Stress_levels, frequency_of_coping) ~ parents_education_level, data = data_cleaned, mean)
+anova_edu_stress <- aov(Stress_levels ~ parents_education_level, data = data_cleaned)
+summary(anova_edu_stress)
+
+anova_edu_coping <- aov(frequency_of_coping ~ parents_education_level, data = data_cleaned)
+summary(anova_edu_coping)
+
+# Visualization: Stress and Coping by Education Level
+ggplot(data_cleaned, aes(x = parents_education_level, y = Stress_levels, fill = parents_education_level)) +
+  geom_boxplot() +
+  labs(title = "Stress Levels by parents education level", x = "parents_education_level", y = "Stress Level") +
+  theme_minimal()
+
+ggplot(data_cleaned, aes(x = parents_education_level, y = frequency_of_coping, fill = parents_education_level)) +
+  geom_boxplot() +
+  labs(title = "Coping Strategies by parents education level", x = "parents education level", y = "Coping Frequency") +
+  theme_minimal()
+
+```
+
+
+# Access to Resources: How does digital access impact academic success?
+```{r}
+aggregate(GPA ~ digital_access, data = data_cleaned, mean)
+anova_digital_gpa <- aov(GPA ~ digital_access, data = data_cleaned)
+summary(anova_digital_gpa)
+ggplot(data_cleaned, aes(x = digital_access, y = GPA, fill = digital_access)) +
+  geom_boxplot() +
+  labs(title = "GPA by Digital Access Level", x = "Digital Access", y = "GPA") +
+  theme_minimal()
+```
+
+
+# Academic Success or Failure: What Patterns Can Be Identified?
+- Clustering Analysis: Grouping Students Based on Performance & Stress
+
+```{r}
+library(cluster)
+scaled_data <- scale(data_cleaned[, c("GPA", "Stress_levels", "frequency_of_coping")])
+kmeans_result <- kmeans(scaled_data, centers = 3)
+
+data_cleaned$Cluster <- as.factor(kmeans_result$cluster)
+table(data_cleaned$Cluster)
+
+ggplot(data_cleaned, aes(x = Stress_levels, y = GPA, color = Cluster)) +
+  geom_point() +
+  labs(title = "Clusters of Academic Success and Stress Levels", x = "Stress Levels", y = "GPA") +
+  theme_minimal()
+
+```
+
+## **Findings and Insights**  
+
+1️⃣ Family Structure and Its Impact on GPA and Stress
+The ANOVA results suggest:
+
+- GPA is not significantly affected by family structure (p = 0.474). This means that students from single-parent, dual-parent, or extended-family households do not show major differences in academic performance.
+- Stress levels are also not significantly different across family structures (p = 0.662). This indicates that regardless of family structure, students report similar levels of stress.
+- The boxplots visually confirm that there is no clear trend—GPA and stress levels appear to be distributed similarly across different family structures.
+
+> 📌 Key Insight: Family structure does not play a strong role in determining GPA or stress, suggesting that other factors (like personal resilience or support systems) may have a greater impact.
+
+
+
+2️⃣ Educational Level and Its Effect on Stress & Coping Strategies
+The average stress level varies slightly across different parental education levels. Students whose parents have no formal education or only primary education tend to report higher stress levels, while those whose parents have secondary or higher education report lower stress levels.
+
+- However, the ANOVA results show no significant difference in stress levels (p = 0.775) or coping frequency (p = 0.474) based on parental education.
+- The boxplots illustrate that students from all education backgrounds show similar distributions of stress and coping strategies, confirming the statistical results.
+
+> 📌 Key Insight: While parental education level may influence students' perceived stress, it does not statistically determine their stress levels or coping mechanisms.
+
+
+3️⃣ Access to Digital Resources and Academic Performance
+- The mean GPA is highest for students with “Good” or “Limited” access, while students with "Excellent" or "Moderate" access have slightly lower GPAs.
+
+- The ANOVA test (p = 0.543) shows no significant difference in GPA based on digital access levels.
+- The boxplot confirms that GPA values are distributed similarly across different levels of digital access, with no clear advantage for students with excellent digital resources.
+
+> 📌 Key Insight: Having better digital access does not necessarily guarantee higher academic performance. This suggests that other factors (e.g., study habits, instructional quality, or personal effort) might play a more crucial role.
+
+
+4️⃣ Academic Success or Failure: Clustering Students by Stress and Performance
+The k-means clustering grouped students into 3 clusters based on their GPA, stress levels, and coping frequency.
+
+- Cluster 1 (32 students): Likely students with moderate GPA and stress levels.
+
+- Cluster 2 (11 students): Could be high-achieving but stressed students.
+
+- Cluster 3 (9 students): Possibly low-GPA, high-stress students.
+
+- The scatter plot shows how stress levels vary among different GPA groups across clusters.
+
+> 📌 Key Insight: There are distinct patterns in how students experience stress and cope with academic challenges, suggesting that stress-coping strategies could be a key factor in academic success or failure rather than external circumstances like family background or digital access.
+
