@@ -69,4 +69,4 @@ This project is licensed under the MIT License.
 
 📬 Contact
 
-For questions or collaboration, reach out to 
+For questions or collaboration, reach out to Wesalmegahed@gmail.com
